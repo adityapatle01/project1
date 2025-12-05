@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Universe</title>
+    <style>
+        /* --- CSS STYLING --- */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        #video-input {
+            display: none;
+        }
+
+        /* Loading Screen */
+        #loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            transition: opacity 0.5s;
+        }
+
+        .loader-text {
+            color: #FFD700;
+            font-size: 1rem;
+            margin-top: 15px;
+            letter-spacing: 2px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 215, 0, 0.1);
+            border-top: 2px solid #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* UI Control Panel */
+        #ui-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            border-color: #FFD700;
+            color: #FFD700;
+        }
+
+        .btn.active {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #FFD700;
+            color: #FFD700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        /* Color Picker */
+        .color-wrapper {
+            display: flex;
+            align-items: center;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding-left: 10px;
+            margin-left: 5px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 24px;
+            height: 24px;
+            background: none;
+            cursor: pointer;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #555;
+            border-radius: 2px;
+        }
+
+        /* Status Overlay */
+        #overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            color: white;
+            z-index: 5;
+            pointer-events: auto;
+        }
+
+        #title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFD700;
+            margin: 0 0 5px 0;
+        }
+
+        #status {
+            font-size: 0.75rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .highlight {
+            color: #fff;
+        }
+
+        /* --- RESPONSIVE TWEAKS FOR PHONES/TABLETS --- */
+        @media (max-width: 768px) {
+            #title {
+                font-size: 1.1rem;
+            }
+
+            #status {
+                font-size: 0.65rem;
+            }
+
+            #ui-panel {
+                bottom: 16px;
+                gap: 6px;
+                padding: 8px 12px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.65rem;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #ui-panel {
+                bottom: 12px;
+                max-width: 95%;
+            }
+
+            .btn {
+                padding: 5px 8px;
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">INITIALIZING...</div>
+    </div>
+
+    <div id="overlay">
+        <h1 id="title">PARTICLE // SYS</h1>
+        <div id="status">
+            SYSTEM: <span id="sys-status" class="highlight">INITIALIZING</span><br>
+            STATE: <span id="enc-status">PLAINTEXT</span><br>
+            <span style="font-size: 0.75rem; color: #888;">
+                created with 💛 by
+                <a href="#" style="color:#FFD700; text-decoration:none; cursor: default;">
+                    Shogun
+                </a>
+            </span>
+        </div>
+    </div>
+
+    <video id="video-input"></video>
+
+    <div id="ui-panel">
+        <button class="btn" onclick="setShape('heart')">Heart</button>
+        <button class="btn" onclick="setShape('flower')">Flower</button>
+        <button class="btn" onclick="setShape('saturn')">Saturn</button>
+        <button class="btn" onclick="setShape('cherry')">Cherry🍒</button>
+        <button class="btn active" onclick="setShape('arc')">ARC</button>
+        <button class="btn" onclick="setShape('fireworks')">Burst</button>
+
+        <div class="color-wrapper">
+            <input type="color" id="colorPicker" value="#FFD700">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const CONFIG = {
+            particleCount: 15000,
+            particleSize: 0.05,
+            lerpSpeed: 0.08,
+            morphSpeed: 0.06
+        };
+
+        // Start on ARC by default
+        let currentShape = 'arc';
+        let handState = { expansion: 1.0, isEncrypted: false };
+        let targetColor = new THREE.Color(0xFFD700);
+
+        // --- 2. THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.03);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 8;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        function updateViewport() {
+            const w = window.innerWidth;
+            const h = window.innerHeight || 1;
+            const aspect = w / h;
+            camera.aspect = aspect;
+            if (aspect < 0.7) { camera.position.z = 11; }
+            else if (aspect < 1.0) { camera.position.z = 9.5; }
+            else { camera.position.z = 8; }
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+        updateViewport();
+
+        // --- 3. GENERATE TEXT COORDINATES ---
+        function getTextCoordinates(text, fontSize = 80) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 200;
+
+            ctx.font = `900 ${fontSize}px Arial, sans-serif`;
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = [];
+
+            for (let y = 0; y < canvas.height; y += 2) {
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const alpha = imgData.data[(y * canvas.width + x) * 4 + 3];
+                    if (alpha > 128) {
+                        pixels.push({
+                            x: (x - canvas.width / 2) * 0.035,
+                            y: -(y - canvas.height / 2) * 0.035,
+                            z: 0
+                        });
+                    }
+                }
+            }
+            return pixels;
+        }
+
+        // --- GENERATE BUFFERS ---
+
+        // 1. CHERRY🍒 Buffer
+        const cherryPointsTemplate = getTextCoordinates("Cherry🍒", 65);
+        const cherryBuffer = new Float32Array(CONFIG.particleCount * 3);
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            const p = cherryPointsTemplate[i % cherryPointsTemplate.length];
+            cherryBuffer[i * 3] = p.x + (Math.random() - 0.5) * 0.1;
+            cherryBuffer[i * 3 + 1] = p.y + (Math.random() - 0.5) * 0.1;
+            cherryBuffer[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+        }
+
+        // 2. ARC Buffer (Big Words)
+        const arcPointsTemplate = getTextCoordinates("ARC", 130);
+        const arcBuffer = new Float32Array(CONFIG.particleCount * 3);
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            const p = arcPointsTemplate[i % arcPointsTemplate.length];
+            arcBuffer[i * 3] = p.x + (Math.random() - 0.5) * 0.1;
+            arcBuffer[i * 3 + 1] = p.y + (Math.random() - 0.5) * 0.1;
+            arcBuffer[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+        }
+
+
+        // --- 4. PARTICLE SYSTEM ---
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(CONFIG.particleCount * 3);
+        const targetPositions = new Float32Array(CONFIG.particleCount * 3);
+        const noiseOffsets = new Float32Array(CONFIG.particleCount * 3);
+
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            positions[i * 3] = 0;
+            positions[i * 3 + 1] = 0;
+            positions[i * 3 + 2] = 0;
+
+            noiseOffsets[i * 3] = (Math.random() - 0.5) * 4;
+            noiseOffsets[i * 3 + 1] = (Math.random() - 0.5) * 4;
+            noiseOffsets[i * 3 + 2] = (Math.random() - 0.5) * 4;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const material = new THREE.PointsMaterial({
+            color: targetColor,
+            size: CONFIG.particleSize,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // --- 5. SHAPE GENERATION LOGIC ---
+        function generateShape(type) {
+            const count = CONFIG.particleCount;
+
+            // Text Shapes
+            if (type === 'cherry') {
+                for (let i = 0; i < count * 3; i++) targetPositions[i] = cherryBuffer[i];
+                return;
+            }
+            if (type === 'arc') {
+                for (let i = 0; i < count * 3; i++) targetPositions[i] = arcBuffer[i];
+                return;
+            }
+
+            // Math Shapes
+            for (let i = 0; i < count; i++) {
+                let x, y, z;
+                const idx = i * 3;
+                const r1 = Math.random();
+                const r2 = Math.random();
+
+                if (type === 'heart') {
+                    const t = r1 * Math.PI * 2;
+                    x = 16 * Math.pow(Math.sin(t), 3);
+                    y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                    z = (r2 - 0.5) * 4;
+                    const s = 0.25; x *= s; y *= s; z *= Math.sqrt(Math.random());
+
+                } else if (type === 'flower') {
+                    const theta = r1 * Math.PI * 2;
+                    const rad = Math.cos(5 * theta) * 3 + 1;
+                    const r = rad * Math.sqrt(r2) * 1.5;
+                    x = r * Math.cos(theta);
+                    y = r * Math.sin(theta);
+                    z = (Math.random() - 0.5);
+
+                } else if (type === 'saturn') {
+                    if (i < count * 0.7) {
+                        const theta = Math.random() * Math.PI * 2;
+                        const phi = Math.acos((Math.random() * 2) - 1);
+                        const r = 2.0;
+                        x = r * Math.sin(phi) * Math.cos(theta);
+                        y = r * Math.sin(phi) * Math.sin(theta);
+                        z = r * Math.cos(phi);
+                    } else {
+                        const theta = Math.random() * Math.PI * 2;
+                        const r = 3.0 + Math.random() * 2.0;
+                        x = r * Math.cos(theta);
+                        z = r * Math.sin(theta);
+                        y = (Math.random() - 0.5) * 0.1;
+                    }
+
+                } else if (type === 'fireworks') {
+                    const zSpread = 2.0;
+                    const safeDist = camera.position.z - (zSpread / 2);
+                    const vFOV = (camera.fov * Math.PI) / 180;
+                    const visibleHeight = 2 * Math.tan(vFOV / 2) * safeDist;
+                    const visibleWidth = visibleHeight * camera.aspect;
+                    x = (Math.random() - 0.5) * visibleWidth;
+                    y = (Math.random() - 0.5) * visibleHeight;
+                    z = (Math.random() - 0.5) * zSpread;
+                }
+
+                targetPositions[idx] = x;
+                targetPositions[idx + 1] = y;
+                targetPositions[idx + 2] = z;
+            }
+        }
+
+        generateShape(currentShape);
+
+        // --- 6. UI INTERACTION ---
+        window.setShape = (shape) => {
+            currentShape = shape;
+
+            if (shape === 'fireworks') {
+                material.size = CONFIG.particleSize * 1.5;
+                material.opacity = 1.0;
+            } else {
+                material.size = CONFIG.particleSize;
+                material.opacity = 0.8;
+            }
+
+            generateShape(shape);
+
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        };
+
+        const colorPicker = document.getElementById('colorPicker');
+        colorPicker.addEventListener('input', (e) => {
+            targetColor.set(e.target.value);
+            material.color.set(targetColor);
+        });
+
+        // --- 7. AI HAND TRACKING ---
+        const videoElem = document.getElementById('video-input');
+        const sysStatus = document.getElementById('sys-status');
+        const encStatus = document.getElementById('enc-status');
+
+        function onResults(results) {
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                sysStatus.innerText = "ONLINE";
+                sysStatus.style.color = "#00FF00";
+
+                const landmarks = results.multiHandLandmarks[0];
+                const wrist = landmarks[0];
+                const middleTip = landmarks[12];
+                const distance = Math.hypot(wrist.x - middleTip.x, wrist.y - middleTip.y);
+
+                if (distance < 0.25) {
+                    handState.isEncrypted = true;
+                    encStatus.innerText = "ENCRYPTED >> LOCKED";
+                    encStatus.style.color = "#FFD700";
+                } else {
+                    handState.isEncrypted = false;
+                    encStatus.innerText = "PLAINTEXT";
+                    encStatus.style.color = "#FFF";
+                }
+
+            } else {
+                sysStatus.innerText = "SEARCHING...";
+                sysStatus.style.color = "#FF0000";
+                handState.isEncrypted = false;
+            }
+        }
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.onResults(onResults);
+
+        const cameraUtils = new Camera(videoElem, {
+            onFrame: async () => { await hands.send({ image: videoElem }); },
+            width: 640, height: 480
+        });
+        cameraUtils.start();
+
+        // --- 8. ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            const posAttr = geometry.attributes.position;
+            const arr = posAttr.array;
+
+            // Rotation logic: Don't rotate text shapes
+            const isTextShape = (currentShape === 'cherry' || currentShape === 'arc');
+
+            if (isTextShape) {
+                particles.rotation.set(0, 0, 0);
+            } else {
+                particles.rotation.y += 0.002;
+            }
+
+            const targetScale = handState.isEncrypted ? 0.05 : 1.0;
+            handState.expansion += (targetScale - handState.expansion) * CONFIG.lerpSpeed;
+
+            // Morph speed & vibration
+            const morphSpeed = isTextShape
+                ? CONFIG.morphSpeed * 1.4
+                : CONFIG.morphSpeed;
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const idx = i * 3;
+                let tx = targetPositions[idx];
+                let ty = targetPositions[idx + 1];
+                let tz = targetPositions[idx + 2];
+
+                if (handState.isEncrypted) {
+                    tx = noiseOffsets[idx] * handState.expansion;
+                    ty = noiseOffsets[idx + 1] * handState.expansion;
+                    tz = noiseOffsets[idx + 2] * handState.expansion;
+                }
+
+                // Add subtle vibration to text shapes
+                const vibration = isTextShape
+                    ? Math.sin(time * 5 + i) * 0.01
+                    : 0.0;
+
+                arr[idx] += (tx - arr[idx]) * morphSpeed + vibration;
+                arr[idx + 1] += (ty - arr[idx + 1]) * morphSpeed + vibration;
+                arr[idx + 2] += (tz - arr[idx + 2]) * morphSpeed + vibration;
+            }
+
+            posAttr.needsUpdate = true;
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', updateViewport);
+    </script>
+</body>
+
+</html>
